@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: 2010-09-09
 Transform: AWS::Serverless-2016-10-31
-Description: Stackery Serverless API Example Stack 
+Description: Stackery Serverless API Example Stack
 Resources:
   function61D00F31:
     Type: AWS::Serverless::Function
@@ -17,6 +17,10 @@ Resources:
       Tracing: Active
       Policies:
         - AWSXrayWriteOnlyAccess
+        - KinesisCrudPolicy:
+            StreamName: !Ref streamC0201E10
+        - KinesisStreamReadPolicy:
+            StreamName: !Ref streamC0201E10
       Events:
         apiFE76C470:
           Type: Api
@@ -24,6 +28,10 @@ Resources:
             Path: /
             Method: GET
             RestApiId: !Ref apiFE76C470
+      Environment:
+        Variables:
+          STREAM_NAME: !Ref streamC0201E10
+          STREAM_ARN: !GetAtt streamC0201E10.Arn
     Metadata:
       StackeryName: getWelcomePage
   apiFE76C470:
@@ -60,8 +68,343 @@ Resources:
       Tracing: Active
       Policies:
         - AWSXrayWriteOnlyAccess
+      Environment:
+        Variables:
+          DB_INSTANCE: !Ref database87948CEC
+          DB_ADDRESS: !GetAtt database87948CEC.Endpoint.Address
+          DB_PORT: !GetAtt database87948CEC.Endpoint.Port
+          DB_ARN: !Sub arn:aws:rds:${AWS::Region}:${AWS::AccountId}:db:${database87948CEC}
     Metadata:
       StackeryName: logErrors
+  virtualNetwork7ACFE873:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      Tags:
+        - Key: Name
+          Value: !Sub
+            - Stackery Stack ${StackeryStackTagName} Environment ${StackeryEnvironmentTagName} Virtual Network ${ResourceName}
+            - ResourceName: virtualNetwork7ACFE873
+  virtualNetwork7ACFE873PrivateSubnet1:
+    Metadata:
+      StackeryManaged: true
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select
+        - 0
+        - !GetAZs ''
+      CidrBlock: !Select
+        - 0
+        - !Cidr
+          - 10.0.0.0/16
+          - 4
+          - 14
+      Tags:
+        - Key: Name
+          Value: !Sub
+            - Stackery Stack ${StackeryStackTagName} Environment ${StackeryEnvironmentTagName} Virtual Network ${ResourceName} Private Subnet 1
+            - ResourceName: virtualNetwork7ACFE873
+      VpcId: !Ref virtualNetwork7ACFE873
+  virtualNetwork7ACFE873PrivateSubnet2:
+    Metadata:
+      StackeryManaged: true
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select
+        - 1
+        - !GetAZs ''
+      CidrBlock: !Select
+        - 1
+        - !Cidr
+          - 10.0.0.0/16
+          - 4
+          - 14
+      Tags:
+        - Key: Name
+          Value: !Sub
+            - Stackery Stack ${StackeryStackTagName} Environment ${StackeryEnvironmentTagName} Virtual Network ${ResourceName} Private Subnet 2
+            - ResourceName: virtualNetwork7ACFE873
+      VpcId: !Ref virtualNetwork7ACFE873
+  virtualNetwork7ACFE873PublicSubnet1:
+    Metadata:
+      StackeryManaged: true
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select
+        - 0
+        - !GetAZs ''
+      CidrBlock: !Select
+        - 2
+        - !Cidr
+          - 10.0.0.0/16
+          - 4
+          - 14
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub
+            - Stackery Stack ${StackeryStackTagName} Environment ${StackeryEnvironmentTagName} Virtual Network ${ResourceName} Public Subnet 1
+            - ResourceName: virtualNetwork7ACFE873
+      VpcId: !Ref virtualNetwork7ACFE873
+  virtualNetwork7ACFE873PublicSubnet2:
+    Metadata:
+      StackeryManaged: true
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select
+        - 1
+        - !GetAZs ''
+      CidrBlock: !Select
+        - 3
+        - !Cidr
+          - 10.0.0.0/16
+          - 4
+          - 14
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub
+            - Stackery Stack ${StackeryStackTagName} Environment ${StackeryEnvironmentTagName} Virtual Network ${ResourceName} Public Subnet 2
+            - ResourceName: virtualNetwork7ACFE873
+      VpcId: !Ref virtualNetwork7ACFE873
+  virtualNetwork7ACFE873PrivateSubnet1NatGatewayEIP:
+    Metadata:
+      StackeryManaged: true
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+  virtualNetwork7ACFE873PrivateSubnet1NatGateway:
+    Metadata:
+      StackeryManaged: true
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt virtualNetwork7ACFE873PrivateSubnet1NatGatewayEIP.AllocationId
+      SubnetId: !Ref virtualNetwork7ACFE873PublicSubnet1
+  virtualNetwork7ACFE873PrivateSubnet1RouteTable:
+    Metadata:
+      StackeryManaged: true
+    Type: AWS::EC2::RouteTable
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub
+            - Stackery Stack ${StackeryStackTagName} Environment ${StackeryEnvironmentTagName} Virtual Network ${ResourceName} Private Subnet 1 Route Table
+            - ResourceName: virtualNetwork7ACFE873
+      VpcId: !Ref virtualNetwork7ACFE873
+  virtualNetwork7ACFE873PrivateSubnet1NatGatewayRoute:
+    Metadata:
+      StackeryManaged: true
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref virtualNetwork7ACFE873PrivateSubnet1NatGateway
+      RouteTableId: !Ref virtualNetwork7ACFE873PrivateSubnet1RouteTable
+  virtualNetwork7ACFE873PrivateSubnet1RouteTableAssociation:
+    Metadata:
+      StackeryManaged: true
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref virtualNetwork7ACFE873PrivateSubnet1RouteTable
+      SubnetId: !Ref virtualNetwork7ACFE873PrivateSubnet1
+  virtualNetwork7ACFE873PrivateSubnet2NatGatewayEIP:
+    Metadata:
+      StackeryManaged: true
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+  virtualNetwork7ACFE873PrivateSubnet2NatGateway:
+    Metadata:
+      StackeryManaged: true
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt virtualNetwork7ACFE873PrivateSubnet2NatGatewayEIP.AllocationId
+      SubnetId: !Ref virtualNetwork7ACFE873PublicSubnet2
+  virtualNetwork7ACFE873PrivateSubnet2RouteTable:
+    Metadata:
+      StackeryManaged: true
+    Type: AWS::EC2::RouteTable
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub
+            - Stackery Stack ${StackeryStackTagName} Environment ${StackeryEnvironmentTagName} Virtual Network ${ResourceName} Private Subnet 2 Route Table
+            - ResourceName: virtualNetwork7ACFE873
+      VpcId: !Ref virtualNetwork7ACFE873
+  virtualNetwork7ACFE873PrivateSubnet2NatGatewayRoute:
+    Metadata:
+      StackeryManaged: true
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref virtualNetwork7ACFE873PrivateSubnet2NatGateway
+      RouteTableId: !Ref virtualNetwork7ACFE873PrivateSubnet2RouteTable
+  virtualNetwork7ACFE873PrivateSubnet2RouteTableAssociation:
+    Metadata:
+      StackeryManaged: true
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref virtualNetwork7ACFE873PrivateSubnet2RouteTable
+      SubnetId: !Ref virtualNetwork7ACFE873PrivateSubnet2
+  virtualNetwork7ACFE873PublicSubnetsInternetGateway:
+    Metadata:
+      StackeryManaged: true
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub
+            - Stackery Stack ${StackeryStackTagName} Environment ${StackeryEnvironmentTagName} Virtual Network ${ResourceName} Public Subnets Internet Gateway
+            - ResourceName: virtualNetwork7ACFE873
+  virtualNetwork7ACFE873PublicSubnetsInternetGatewayAttachment:
+    Metadata:
+      StackeryManaged: true
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref virtualNetwork7ACFE873PublicSubnetsInternetGateway
+      VpcId: !Ref virtualNetwork7ACFE873
+  virtualNetwork7ACFE873PublicSubnetsRouteTable:
+    Metadata:
+      StackeryManaged: true
+    Type: AWS::EC2::RouteTable
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub
+            - Stackery Stack ${StackeryStackTagName} Environment ${StackeryEnvironmentTagName} Virtual Network ${ResourceName} Public Subnets Route Table
+            - ResourceName: virtualNetwork7ACFE873
+      VpcId: !Ref virtualNetwork7ACFE873
+  virtualNetwork7ACFE873PublicSubnetsInternetGatewayRoute:
+    Metadata:
+      StackeryManaged: true
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref virtualNetwork7ACFE873PublicSubnetsInternetGateway
+      RouteTableId: !Ref virtualNetwork7ACFE873PublicSubnetsRouteTable
+  virtualNetwork7ACFE873PublicSubnet1RouteTableAssociation:
+    Metadata:
+      StackeryManaged: true
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref virtualNetwork7ACFE873PublicSubnetsRouteTable
+      SubnetId: !Ref virtualNetwork7ACFE873PublicSubnet1
+  virtualNetwork7ACFE873PublicSubnet2RouteTableAssociation:
+    Metadata:
+      StackeryManaged: true
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref virtualNetwork7ACFE873PublicSubnetsRouteTable
+      SubnetId: !Ref virtualNetwork7ACFE873PublicSubnet2
+  objectStore173F67FE:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub ${AWS::StackName}-objectstore173f67fe
+  function3696CAA9:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-function3696CAA9
+      Description: !Sub
+        - Stackery Stack ${StackeryStackTagName} Environment ${StackeryEnvironmentTagName} Function ${ResourceName}
+        - ResourceName: function3696CAA9
+      CodeUri: src/function3696CAA9
+      Handler: index.handler
+      Runtime: nodejs8.10
+      MemorySize: 3008
+      Timeout: 30
+      Tracing: Active
+      Policies:
+        - AWSXrayWriteOnlyAccess
+      Events:
+        objectStore173F67FE:
+          Type: S3
+          Properties:
+            Bucket: !Ref objectStore173F67FE
+            Events:
+              - s3:ObjectCreated:*
+              - s3:ObjectRemoved:*
+  database87948CEC:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      AllocatedStorage: '5'
+      AllowMajorVersionUpgrade: true
+      AutoMinorVersionUpgrade: true
+      BackupRetentionPeriod: '0'
+      CopyTagsToSnapshot: true
+      DBInstanceClass: db.t2.micro
+      DBSubnetGroupName: !Ref database87948CECSubnetGroup
+      Engine: mariadb
+      EngineVersion: '10.2'
+      MasterUsername: root
+      MasterUserPassword: ''
+      MultiAZ: false
+      PubliclyAccessible: false
+      StorageType: gp2
+      Tags:
+        - Key: Name
+          Value: !Sub
+            - Stackery Stack ${StackeryStackTagName} Environment ${StackeryEnvironmentTagName} Database ${ResourceName}
+            - ResourceName: database87948CEC
+      VPCSecurityGroups:
+        - !Ref database87948CECSecurityGroup
+  database87948CECSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: !Sub
+        - Stackery Stack ${StackeryStackTagName} Environment ${StackeryEnvironmentTagName} Database ${ResourceName} VPC Subnets
+        - ResourceName: database87948CEC
+      SubnetIds:
+        - !Ref virtualNetwork7ACFE873PrivateSubnet1
+        - !Ref virtualNetwork7ACFE873PrivateSubnet2
+      Tags:
+        - Key: Name
+          Value: !Sub
+            - Stackery Stack ${StackeryStackTagName} Environment ${StackeryEnvironmentTagName} Database ${ResourceName} VPC Subnets
+            - ResourceName: database87948CEC
+  database87948CECSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Database Security Group
+      SecurityGroupIngress:
+        CidrIp: 0.0.0.0/0
+        FromPort: 3306
+        IpProtocol: tcp
+        ToPort: 3306
+      Tags:
+        - Key: Name
+          Value: !Sub
+            - Stackery Stack ${StackeryStackTagName} Environment ${StackeryEnvironmentTagName} Database ${ResourceName} VPC Security Group
+            - ResourceName: database87948CEC
+      VpcId: !Ref virtualNetwork7ACFE873
+  streamC0201E10:
+    Type: AWS::Kinesis::Stream
+    Properties:
+      Name: !Sub ${AWS::StackName}-streamC0201E10
+      ShardCount: 1
+      StreamEncryption:
+        EncryptionType: KMS
+        KeyId: alias/aws/kinesis
+  functionAFA4A0E9:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-functionAFA4A0E9
+      Description: !Sub
+        - Stackery Stack ${StackeryStackTagName} Environment ${StackeryEnvironmentTagName} Function ${ResourceName}
+        - ResourceName: functionAFA4A0E9
+      CodeUri: src/functionAFA4A0E9
+      Handler: index.handler
+      Runtime: nodejs8.10
+      MemorySize: 3008
+      Timeout: 30
+      Tracing: Active
+      Policies:
+        - AWSXrayWriteOnlyAccess
+      Events:
+        streamC0201E10:
+          Type: Kinesis
+          Properties:
+            Stream: !GetAtt streamC0201E10.Arn
+            StartingPosition: TRIM_HORIZON
+            BatchSize: 1
 Parameters:
   StackeryStackTagName:
     Type: String
